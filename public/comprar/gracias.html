@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Confirmando tu pago — WaMaster Asthi</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <div class="brand"><a href="/" style="color:inherit;text-decoration:none;">WaMaster<span>Asthi</span></a></div>
+  </div>
+</header>
+
+<div class="card" id="statusCard">
+  <h2>Confirmando tu pago...</h2>
+  <p class="muted" id="statusMessage">Esto puede tardar unos segundos mientras Mercado Pago nos confirma el pago. No cierres esta pantalla.</p>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const paymentId = params.get('pago');
+const card = document.getElementById('statusCard');
+const message = document.getElementById('statusMessage');
+
+async function poll() {
+  if (!paymentId) {
+    card.innerHTML = '<h2>Falta el identificador de pago.</h2><p class="muted">Si acabas de pagar, revisa el enlace que te llevó aquí.</p>';
+    return;
+  }
+  try {
+    const res = await fetch(`/api/payments/status/${encodeURIComponent(paymentId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se encontró el pago.');
+
+    if (data.status === 'approved') {
+      let credsHtml = '';
+      if (data.temporaryPassword) {
+        credsHtml = `
+          <div class="card" style="margin:20px 0 0;padding:16px;background:#f4f6f9;">
+            <p style="margin:0 0 6px;"><strong>Correo:</strong> ${data.email}</p>
+            <p style="margin:0;"><strong>Contraseña temporal:</strong> <code>${data.temporaryPassword}</code></p>
+          </div>
+          <p class="muted">Guarda esta contraseña ahora — no se volverá a mostrar. Puedes cambiarla iniciando sesión y contactando a soporte para restablecerla si la pierdes.</p>`;
+      } else {
+        credsHtml = '<p class="muted">Ya tenías una cuenta — usa tu correo y contraseña de siempre para iniciar sesión.</p>';
+      }
+      card.innerHTML = `
+        <h2 class="success-text">¡Pago confirmado!</h2>
+        <p>Tu licencia (${data.license?.planLabel || data.planId}) ya está activa${data.license?.expiresAt ? ' hasta el ' + new Date(data.license.expiresAt).toLocaleDateString('es-MX') : ''}.</p>
+        ${credsHtml}
+        <a href="/descargar" class="btn btn-primary btn-block" style="margin-top:16px;">Descargar la extensión</a>`;
+      return;
+    }
+
+    if (data.status === 'rejected' || data.status === 'cancelled') {
+      card.innerHTML = `<h2 class="error-text">El pago no se completó</h2><p class="muted">Estado: ${data.status}. Puedes <a href="/comprar">intentarlo de nuevo</a>.</p>`;
+      return;
+    }
+
+    // pending / in_process / todavía no llega el webhook: reintenta.
+    message.textContent = `Estado actual: ${data.status || 'pendiente'}. Verificando de nuevo en unos segundos...`;
+    setTimeout(poll, 3000);
+  } catch (err) {
+    message.textContent = `No se pudo confirmar el pago todavía (${err.message}). Reintentando...`;
+    setTimeout(poll, 4000);
+  }
+}
+
+poll();
+</script>
+
+</body>
+</html>

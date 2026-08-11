@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WaMaster Asthi — Automatiza tus campañas de WhatsApp</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <div class="brand">WaMaster<span>Asthi</span></div>
+    <nav>
+      <a href="/#planes">Planes</a>
+      <a href="/cliente">Mi licencia</a>
+      <a href="/descargar">Descargar</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h1>Automatiza tus campañas de WhatsApp desde Chrome</h1>
+    <p>Importa contactos desde Excel, personaliza cada mensaje con variables, envía imágenes o PDF, y controla el envío con pausas, reintentos y reportes — todo desde una extensión de Chrome.</p>
+    <a href="#planes" class="btn btn-primary">Ver planes</a>
+    <a href="/descargar" class="btn btn-secondary">Descargar extensión</a>
+  </div>
+</section>
+
+<section class="plans" id="planes">
+  <div class="container">
+    <h2>Planes</h2>
+    <p class="subtitle">Compra un plan, recibe tu correo y contraseña, e inicia sesión desde la extensión.</p>
+    <div id="plansContainer">
+      <p class="muted" style="text-align:center;">Cargando planes...</p>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    WaMaster Asthi automatiza WhatsApp Web mediante el mecanismo público de "click-to-chat". El envío masivo a contactos que no dieron su consentimiento puede infringir los Términos de Servicio de WhatsApp y leyes locales de protección de datos — el uso de la herramienta es responsabilidad de quien la opera.
+  </div>
+</footer>
+
+<a href="https://wa.me/" class="whatsapp-float" title="Escríbenos por WhatsApp">💬</a>
+
+<script>
+async function loadPlans() {
+  const container = document.getElementById('plansContainer');
+  try {
+    const res = await fetch('/api/plans');
+    const { plans, currency } = await res.json();
+    if (!plans.length) {
+      container.innerHTML = '<p class="muted" style="text-align:center;">Todavía no hay planes configurados.</p>';
+      return;
+    }
+    container.innerHTML = `
+      <div class="plans-grid">
+        ${plans.map((p, i) => `
+          <div class="plan-card ${i === 1 ? 'is-featured' : ''}">
+            <h3>${p.label}</h3>
+            <div class="price">$${p.priceMonthly} <small>${currency} / mes</small></div>
+            <p class="muted">o $${p.priceYearly} ${currency} / año</p>
+            <ul>
+              <li>${p.maxActivations} dispositivo${p.maxActivations > 1 ? 's' : ''} simultáneo${p.maxActivations > 1 ? 's' : ''}</li>
+              <li>Adjuntos e importación desde Excel</li>
+              <li>Soporte por correo/WhatsApp</li>
+            </ul>
+            <a class="btn btn-primary btn-block" href="/comprar?plan=${p.planId}">Comprar</a>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch {
+    container.innerHTML = '<p class="error-text" style="text-align:center;">No se pudieron cargar los planes. Intenta más tarde.</p>';
+  }
+}
+loadPlans();
+</script>
+
+</body>
+</html>

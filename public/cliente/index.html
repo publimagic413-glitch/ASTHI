@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mi licencia — WaMaster Asthi</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <div class="brand"><a href="/" style="color:inherit;text-decoration:none;">WaMaster<span>Asthi</span></a></div>
+  </div>
+</header>
+
+<div class="card">
+  <h2>Consulta tu licencia</h2>
+  <p class="muted">Ingresa la clave que recibiste al comprar (formato <code>WAM-XXXX-XXXX-XXXX</code>). Para usar la extensión, inicia sesión ahí con tu correo y contraseña, no con esta clave.</p>
+
+  <form id="lookupForm">
+    <label class="field">
+      <span>Clave de licencia</span>
+      <input type="text" id="keyInput" placeholder="WAM-XXXX-XXXX-XXXX" required />
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Consultar</button>
+    <p id="lookupError" class="error-text" style="display:none;"></p>
+  </form>
+
+  <div id="result" style="display:none;margin-top:20px;">
+    <table>
+      <tr><th>Plan</th><td id="resPlan"></td></tr>
+      <tr><th>Estado</th><td id="resStatus"></td></tr>
+      <tr><th>Vence</th><td id="resExpires"></td></tr>
+    </table>
+    <a href="/descargar" class="btn btn-secondary btn-block" style="margin-top:16px;">Descargar la extensión</a>
+  </div>
+</div>
+
+<script>
+document.getElementById('lookupForm').addEventListener('submit', async (evt) => {
+  evt.preventDefault();
+  const errorEl = document.getElementById('lookupError');
+  const resultEl = document.getElementById('result');
+  errorEl.style.display = 'none';
+  resultEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/client/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: document.getElementById('keyInput').value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo consultar la licencia.');
+
+    const l = data.license;
+    const badgeClass = l.status === 'active' ? 'badge--active' : (l.status === 'suspended' ? 'badge--suspended' : 'badge--expired');
+    const statusLabel = { active: 'Activa', suspended: 'Suspendida', expired: 'Vencida' }[l.status] || l.status;
+
+    document.getElementById('resPlan').textContent = l.planLabel;
+    document.getElementById('resStatus').innerHTML = `<span class="badge ${badgeClass}">${statusLabel}</span>`;
+    document.getElementById('resExpires').textContent = l.expiresAt ? new Date(l.expiresAt).toLocaleDateString('es-MX') : 'Sin vencimiento';
+    resultEl.style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  }
+});
+</script>
+
+</body>
+</html>

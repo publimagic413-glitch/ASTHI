@@ -1,0 +1,13 @@
+{
+  "name": "wamaster-asthi-web",
+  "version": "0.3.0",
+  "description": "MVP web de WaMaster Asthi: landing, checkout de pagos (Mercado Pago), panel admin de licencias, panel de cliente y API de validación de licencias.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}

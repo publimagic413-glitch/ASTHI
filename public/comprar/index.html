@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Comprar — WaMaster Asthi</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <div class="brand"><a href="/" style="color:inherit;text-decoration:none;">WaMaster<span>Asthi</span></a></div>
+    <nav><a href="/cliente">Mi licencia</a></nav>
+  </div>
+</header>
+
+<div class="card">
+  <h2>Completa tu compra</h2>
+  <p class="muted">Pagas una sola vez por el período que elijas (no es una suscripción con cobro automático). Recibirás tu correo y contraseña por esta misma pantalla al confirmarse el pago.</p>
+
+  <div class="period-toggle">
+    <button type="button" id="btnMonthly" class="is-active">Mensual (30 días)</button>
+    <button type="button" id="btnYearly">Anual (365 días)</button>
+  </div>
+
+  <form id="checkoutForm">
+    <label class="field">
+      <span>Nombre</span>
+      <input type="text" id="nameInput" required />
+    </label>
+    <label class="field">
+      <span>Correo</span>
+      <input type="email" id="emailInput" required />
+    </label>
+    <label class="field">
+      <span>Plan</span>
+      <select id="planSelect" required></select>
+    </label>
+    <p id="priceLabel" class="muted"></p>
+    <button type="submit" class="btn btn-primary btn-block" id="btnSubmit">Pagar con Mercado Pago</button>
+    <p id="checkoutError" class="error-text hidden" style="display:none;"></p>
+  </form>
+</div>
+
+<footer class="site-footer">
+  <div class="container">Al pagar, aceptas que el uso de WaMaster Asthi es tu responsabilidad frente a los Términos de Servicio de WhatsApp.</div>
+</footer>
+
+<script>
+let plans = [];
+let period = 'monthly';
+
+const planSelect = document.getElementById('planSelect');
+const priceLabel = document.getElementById('priceLabel');
+const btnMonthly = document.getElementById('btnMonthly');
+const btnYearly = document.getElementById('btnYearly');
+const checkoutError = document.getElementById('checkoutError');
+const btnSubmit = document.getElementById('btnSubmit');
+
+function renderPrice() {
+  const plan = plans.find((p) => p.planId === planSelect.value);
+  if (!plan) { priceLabel.textContent = ''; return; }
+  const price = period === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+  priceLabel.textContent = `Total: $${price} ${plan.currency} (${period === 'yearly' ? '1 año' : '1 mes'})`;
+}
+
+async function init() {
+  try {
+    const res = await fetch('/api/plans');
+    const data = await res.json();
+    plans = data.plans.map((p) => ({ ...p, currency: data.currency }));
+    planSelect.innerHTML = plans.map((p) => `<option value="${p.planId}">${p.label}</option>`).join('');
+
+    const params = new URLSearchParams(location.search);
+    const preselected = params.get('plan');
+    if (preselected && plans.some((p) => p.planId === preselected)) planSelect.value = preselected;
+    if (params.get('error')) {
+      checkoutError.textContent = 'El pago no se completó. Puedes intentarlo de nuevo.';
+      checkoutError.style.display = 'block';
+    }
+
+    renderPrice();
+  } catch {
+    checkoutError.textContent = 'No se pudieron cargar los planes.';
+    checkoutError.style.display = 'block';
+  }
+}
+
+btnMonthly.addEventListener('click', () => {
+  period = 'monthly';
+  btnMonthly.classList.add('is-active');
+  btnYearly.classList.remove('is-active');
+  renderPrice();
+});
+btnYearly.addEventListener('click', () => {
+  period = 'yearly';
+  btnYearly.classList.add('is-active');
+  btnMonthly.classList.remove('is-active');
+  renderPrice();
+});
+planSelect.addEventListener('change', renderPrice);
+
+document.getElementById('checkoutForm').addEventListener('submit', async (evt) => {
+  evt.preventDefault();
+  checkoutError.style.display = 'none';
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Redirigiendo a Mercado Pago...';
+
+  try {
+    const res = await fetch('/api/payments/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('nameInput').value,
+        email: document.getElementById('emailInput').value,
+        planId: planSelect.value,
+        period,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo iniciar el pago.');
+    window.location.href = data.checkoutUrl;
+  } catch (err) {
+    checkoutError.textContent = err.message;
+    checkoutError.style.display = 'block';
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = 'Pagar con Mercado Pago';
+  }
+});
+
+init();
+</script>
+
+</body>
+</html>

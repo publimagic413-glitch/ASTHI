@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel admin — WaMaster Asthi</title>
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+  .admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .admin-tabs button { border: 1px solid var(--gray-200); background: var(--white); border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+  .admin-tabs button.is-active { background: var(--navy-900); color: var(--white); border-color: var(--navy-900); }
+  .admin-panel { display: none; }
+  .admin-panel.is-active { display: block; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(11,28,51,0.5); align-items: center; justify-content: center; z-index: 10; }
+  .modal-backdrop.is-open { display: flex; }
+  .modal { background: var(--white); border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw; }
+  .table-actions button { margin-right: 6px; font-size: 12px; padding: 4px 10px; }
+  .wide-container { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container admin-header">
+    <div class="brand"><span style="color:inherit;">Panel admin</span> <span>WaMaster Asthi</span></div>
+    <div>
+      <span id="adminEmailLabel" class="muted" style="color:#cbd5e1;margin-right:14px;"></span>
+      <button type="button" id="btnLogout" class="btn btn-secondary" style="display:none;">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<div id="loginView" class="card">
+  <h2>Inicia sesión</h2>
+  <form id="loginForm">
+    <label class="field"><span>Correo</span><input type="email" id="loginEmail" required /></label>
+    <label class="field"><span>Contraseña</span><input type="password" id="loginPassword" required /></label>
+    <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    <p id="loginError" class="error-text" style="display:none;"></p>
+  </form>
+</div>
+
+<div id="appView" class="wide-container" style="display:none;">
+  <div class="admin-tabs">
+    <button type="button" class="is-active" data-panel="licenses">Licencias</button>
+    <button type="button" data-panel="payments">Pagos</button>
+  </div>
+
+  <div class="admin-panel is-active" id="panelLicenses">
+    <div class="toolbar">
+      <button type="button" id="btnNewLicense" class="btn btn-primary">+ Nueva licencia</button>
+      <a href="/api/admin/licenses/export.csv" class="btn btn-secondary">Exportar CSV</a>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Clave</th><th>Cliente</th><th>Correo</th><th>Plan</th><th>Estado</th><th>Vence</th><th>Dispositivos</th><th></th></tr>
+      </thead>
+      <tbody id="licensesTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="admin-panel" id="panelPayments">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th>Período</th><th>Monto</th><th>Estado</th></tr>
+      </thead>
+      <tbody id="paymentsTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3 id="modalTitle">Nueva licencia</h3>
+    <form id="licenseForm">
+      <input type="hidden" id="editLicenseId" />
+      <label class="field"><span>Nombre del cliente</span><input type="text" id="customerName" required /></label>
+      <label class="field"><span>Correo del cliente</span><input type="email" id="customerEmail" required /></label>
+      <label class="field" id="customerPasswordField"><span>Contraseña del cliente (opcional)</span><input type="text" id="customerPassword" placeholder="Vacío = se genera una automáticamente" /></label>
+      <label class="field"><span>Plan</span><select id="planId" required></select></label>
+      <label class="field"><span>Vence (opcional)</span><input type="text" id="expiresAt" placeholder="AAAA-MM-DD" /></label>
+      <label class="field"><span>Notas</span><input type="text" id="notes" /></label>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Guardar</button>
+        <button type="button" id="btnCancelModal" class="btn btn-secondary" style="flex:1;">Cancelar</button>
+      </div>
+      <p id="modalError" class="error-text" style="display:none;"></p>
+    </form>
+  </div>
+</div>
+
+<script src="/admin/admin.js"></script>
+</body>
+</html>
